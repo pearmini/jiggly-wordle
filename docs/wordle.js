@@ -200,6 +200,7 @@ export function wordle(
                 .insert("path", "text")
                 .attr("d", pathData)
                 .attr("fill", (d) => d.fill)
+                .attr("opacity", 0.9)
                 .attr("stroke", "#000")
                 .attr("stroke-width", 0.1);
               path.node().__text__ = d;
