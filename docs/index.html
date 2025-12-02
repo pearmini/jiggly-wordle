@@ -8,11 +8,11 @@
       }
 
       form {
-        font-size: 16px !important;
+        font-size: 14px !important;
       }
     
       p {
-        font-size: 16px;
+        font-size: 14px !important;
       }
     </style>
   </script>
@@ -26,15 +26,21 @@
     const text = view(Inputs.textarea({rows: 10, placeholder: "Enter your text here...", value: defaultText}));
   </script>
   <script type="module">
-    const right = view(Inputs.toggle({label: "Right Angle", value: false}));
-    const symbols = view(Inputs.toggle({label: "Symbols", value: false}));
-    const count = view(Inputs.number({label: "Count", value: 100}));
+    const right = view(Inputs.toggle({label: "Use Right Angles", value: false}));
+    const symbols = view(Inputs.toggle({label: "Display Symbols", value: false}));
+    const count = view(Inputs.number({label: "Number of Words", value: 100}));
   </script>
   <script type="text/markdown">
     [Jiggly Wordle](https://github.com/pearmini/jiggly-wordle) created by [Bairui SU](https://bairui.dev).
   </script>
   <script type="module">
-    const defaultText = `How the Word Cloud Generator Works
+    const defaultText = `Jiggly Wordle by Bairui SU
+
+    I created Jiggly Recursive Circles and Jiggly Texts before, inspired by Paul Buffa's wonderful Jiggly Map! After an inspiring chat with Liwenhan Xie, I thought I could apply the jiggly animation to a word cloud, similar to what she did in Emordle - Animating Word Cloud for Emotion Expression.
+
+    Here is the result. I don't know if this word cloud has emotion or not, but it does have a "personality"! One pleasing aspect of this process was fixing a bug in d3-cloud. Huge thanks to Jason Davies for making such a wonderful library.
+
+    The following content is Jason Davies's How the Word Cloud Generator Works.
     
     The layout algorithm for positioning words without overlap is available on GitHub under an open source license as d3-cloud. Note that this is the only the layout algorithm and any code for converting text into words and rendering the final output requires additional development.
     

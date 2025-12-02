@@ -6,4 +6,4 @@ Here is the result. I don't know if this word cloud has emotion or not, but it d
 
 ![preview](/img/preview.gif)
 
-One pleasing aspect of this process was fixing a bug in [d3-cloud](https://github.com/jasondavies/d3-cloud). Huge thanks to Jason Davies for making such a wonderful library.
+One pleasing aspect of this process was [fixing a bug](https://github.com/jasondavies/d3-cloud/pull/194) in [d3-cloud](https://github.com/jasondavies/d3-cloud). Huge thanks to [Jason Davies](https://www.jasondavies.com/) for making such a wonderful library.
