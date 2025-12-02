@@ -1,20 +1,23 @@
 {
-  "name": "jiggly-symbols",
+  "name": "jiggly-wordle",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "docs:preview": "notebooks preview --root docs",
+    "docs:build": "notebooks build --root docs -- docs/*.html"
   },
   "devDependencies": {
-    "prettier": "^3.5.3",
-    "vite": "^6.2.4"
+    "prettier": "^3.5.3"
   },
   "dependencies": {
-    "charmingjs": "^0.0.16",
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/source-serif-4": "^5.2.9",
+    "@fontsource/spline-sans-mono": "^5.2.8",
+    "@observablehq/notebook-kit": "^1.5.0",
     "d3": "^7.9.0",
-    "flubber": "^0.4.2"
+    "d3-cloud": "^1.2.7",
+    "flubber": "^0.4.2",
+    "stopwords-en": "^0.3.0"
   }
 }
