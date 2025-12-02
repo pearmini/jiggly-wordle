@@ -181,6 +181,7 @@ export function wordle(
     if (symbols) {
       setTimeout(() => {
         texts.filter((d) => !d.top).attr("opacity", 0);
+        texts.filter((d) => d.top).attr("fill", "black");
         groups
           .filter((d) => !d.top)
           .each(function (d) {
@@ -238,11 +239,15 @@ export function wordle(
         .ease(d3.easeElastic)
         .attr("transform", (d) => `translate(${d.x + d.dx}, ${d.y + d.dy})rotate(${d.rotate})`);
 
-      texts
-        .transition()
-        .duration(1000)
-        .delay((d) => d.index * 20)
-        .attr("fill", (d) => d.fill);
+      if (!symbols) {
+        texts
+          .transition()
+          .duration(1000)
+          .delay((d) => d.index * 20)
+          .attr("fill", (d) => d.fill);
+      } else {
+        texts.filter((d) => d.top).attr("fill", "black");
+      }
 
       d3.selectAll(paths)
         .transition()
