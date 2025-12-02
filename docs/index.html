@@ -10,7 +10,7 @@
   </script>
   <script type="module">
     import {wordle} from "./wordle.js";
-    const svg = wordle(text, {count: count, right});
+    const svg = wordle(text, {count: count, right, symbols});
     invalidation.then(() => svg.dispose());
     display(svg);
   </script>
@@ -19,6 +19,7 @@
   </script>
   <script type="module">
     const right = view(Inputs.toggle({label: "Right Angle", value: false}));
+    const symbols = view(Inputs.toggle({label: "Symbols", value: false}));
     const count = view(Inputs.number({label: "Count", value: 100}));
   </script>
   <script type="module">

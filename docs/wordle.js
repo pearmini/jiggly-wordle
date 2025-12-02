@@ -2,6 +2,8 @@ import cloud from "d3-cloud";
 import * as d3 from "d3";
 import stopwords from "stopwords-en";
 import {randomNoise} from "./noise.js";
+import {symbolSquare, symbolCircle, symbolDiamond, symbolX} from "./symbols.js";
+import {interpolate as interpolatePath} from "flubber";
 
 const interpolates = [
   {name: "Rainbow", value: d3.interpolateRainbow},
@@ -64,6 +66,12 @@ function randomAngle(angleStart, angleEnd, angleStep) {
   return () => angles[random()];
 }
 
+function randomSymbol() {
+  const symbolFunctions = [symbolSquare, symbolCircle, symbolDiamond, symbolX];
+  const random = d3.randomInt(0, symbolFunctions.length);
+  return symbolFunctions[random()];
+}
+
 function randomInterpolate() {
   const random = d3.randomInt(0, interpolates.length);
   return interpolates[random()].value;
@@ -75,7 +83,16 @@ function randomRightAngle() {
 
 export function wordle(
   text,
-  {width = 960, height = 600, angleStart = -60, angleEnd = 60, angleStep = 5, count = 250, right = false} = {},
+  {
+    width = 960,
+    height = 600,
+    angleStart = -60,
+    angleEnd = 60,
+    angleStep = 5,
+    count = 250,
+    right = false,
+    symbols = false,
+  } = {},
 ) {
   const wordFreqs = computeWordFrequencies(text, stopwords).slice(0, count);
   const angle = right ? randomRightAngle() : randomAngle(angleStart, angleEnd, angleStep);
@@ -117,8 +134,8 @@ export function wordle(
   layout.start();
 
   function draw(words) {
-    const noiseX = randomNoise(-20, 20, {octaves: 3, seed: Math.random()});
-    const noiseY = randomNoise(-20, 20, {octaves: 3, seed: Math.random()});
+    const noiseX = randomNoise(-20, 20, {octaves: 5, seed: Math.random()});
+    const noiseY = randomNoise(-20, 20, {octaves: 5, seed: Math.random()});
 
     const layeredWords = words.map((d) => {
       const words = [];
@@ -131,7 +148,14 @@ export function wordle(
       const color = d3
         .scaleSequential(d3.interpolateViridis) // Default to viridis
         .domain(d3.extent(words, (d) => d.size).reverse());
-      return words.map((d) => ({...d, fill: color(d.size)}));
+      // Pick one symbol for this entire group
+      const symbol = randomSymbol();
+      return words.map((d, index) => ({
+        ...d,
+        top: index === 0,
+        fill: color(d.size),
+        symbol,
+      }));
     });
 
     const groups = g
@@ -152,6 +176,39 @@ export function wordle(
       .attr("stroke-width", 0.1)
       .text((d) => d.text);
 
+    const paths = [];
+
+    if (symbols) {
+      setTimeout(() => {
+        texts.filter((d) => !d.top).attr("opacity", 0);
+        groups
+          .filter((d) => !d.top)
+          .each(function (d) {
+            const group = d3.select(this);
+            const textElement = group.select("text").node();
+            if (textElement) {
+              const bbox = textElement.getBBox();
+              const paddingY = bbox.height * 0.25;
+              const paddingX = bbox.width * 0;
+              const x = bbox.x + paddingX;
+              const y = bbox.y + paddingY;
+              const width = bbox.width - paddingX * 2;
+              const height = bbox.height - paddingY * 2;
+              const pathData = d.symbol(x, y, width, height);
+              const path = group
+                .insert("path", "text")
+                .attr("d", pathData)
+                .attr("fill", (d) => d.fill)
+                .attr("stroke", "#000")
+                .attr("stroke-width", 0.1);
+              path.node().__text__ = d;
+              path.node().__bbox__ = {x, y, width, height};
+              paths.push(path.node());
+            }
+          });
+      }, 0);
+    }
+
     let frame = 0;
 
     timer = d3.interval(() => {
@@ -159,16 +216,18 @@ export function wordle(
       const interpolate = randomInterpolate();
 
       for (const words of layeredWords) {
-        const dx = noiseX(words[0].x + frame);
-        const dy = noiseY(words[0].y + frame);
+        const dx = noiseX(words[0].x / 10 + frame);
+        const dy = noiseY(words[0].y / 10 + frame);
         const scale = d3
           .scaleSequential(interpolate) // Pick a random interpolate from the list
           .domain(d3.extent(words, (d) => d.size).reverse());
+        const symbol = randomSymbol();
         for (let i = 0; i < words.length; i++) {
           words[i].dx = dx * i;
           words[i].dy = dy * i;
           words[i].index = i;
           words[i].fill = scale(words[i].size);
+          words[i].symbol = symbol;
         }
       }
 
@@ -184,6 +243,22 @@ export function wordle(
         .duration(1000)
         .delay((d) => d.index * 20)
         .attr("fill", (d) => d.fill);
+
+      d3.selectAll(paths)
+        .transition()
+        .duration(1000)
+        .delay(function (d) {
+          return this.__text__.index * 20;
+        })
+        .attr("fill", function (d) {
+          return this.__text__.fill;
+        })
+        .attrTween("d", function (d) {
+          const from = this.getAttribute("d");
+          const {x, y, width, height} = this.__bbox__;
+          const to = this.__text__.symbol(x, y, width, height);
+          return interpolatePath(from, to);
+        });
     }, 2000);
   }
 
