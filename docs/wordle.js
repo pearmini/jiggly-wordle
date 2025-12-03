@@ -141,13 +141,15 @@ export function wordle(
       const words = [];
       let size = d.size;
       let z = 0;
-      while (size >= 20) {
+      while (size >= 30) {
         words.push({...d, size: size, z: z++});
         size -= 10;
       }
+
       const color = d3
         .scaleSequential(d3.interpolateViridis) // Default to viridis
         .domain(d3.extent(words, (d) => d.size).reverse());
+
       // Pick one symbol for this entire group
       const symbol = randomSymbol();
       return words.map((d, index) => ({
@@ -158,14 +160,16 @@ export function wordle(
       }));
     });
 
-    const groups = g
+    const textsGroups = g
+      .append("g")
+      .attr("class", "texts")
       .selectAll("g")
       .data(layeredWords.flat().sort((a, b) => a.z - b.z))
       .enter()
       .append("g")
       .attr("transform", (d) => `translate(${d.x}, ${d.y})rotate(${d.rotate})`);
 
-    const texts = groups
+    const texts = textsGroups
       .append("text")
       .attr("font-size", (d) => `${d.size}px`)
       .attr("font-family", "Impact")
@@ -176,38 +180,83 @@ export function wordle(
       .attr("stroke-width", 0.1)
       .text((d) => d.text);
 
-    const paths = [];
+    let symbolsGroups;
+    let paths;
+
+    const bboxes = [];
+    const symbolsBBoxes = [];
+    const allSymbols = [];
 
     if (symbols) {
       setTimeout(() => {
-        texts.filter((d) => !d.top).attr("opacity", 0);
-        texts.filter((d) => d.top).attr("fill", "black");
-        groups
-          .filter((d) => !d.top)
+        textsGroups.filter((d) => !d.top).remove();
+
+        texts
+          .filter((d) => d.top)
+          .attr("fill", "#eee")
+          .attr("stroke", "none");
+
+        texts
+          .filter((d) => d.top)
           .each(function (d) {
-            const group = d3.select(this);
-            const textElement = group.select("text").node();
-            if (textElement) {
-              const bbox = textElement.getBBox();
-              const paddingY = bbox.height * 0.25;
-              const paddingX = bbox.width * 0;
-              const x = bbox.x + paddingX;
-              const y = bbox.y + paddingY;
-              const width = bbox.width - paddingX * 2;
-              const height = bbox.height - paddingY * 2;
-              const pathData = d.symbol(x, y, width, height);
-              const path = group
-                .insert("path", "text")
-                .attr("d", pathData)
-                .attr("fill", (d) => d.fill)
-                .attr("opacity", 0.9)
-                .attr("stroke", "#000")
-                .attr("stroke-width", 0.1);
-              path.node().__text__ = d;
-              path.node().__bbox__ = {x, y, width, height};
-              paths.push(path.node());
-            }
+            const bbox = this.getBBox();
+            bboxes.push({
+              x: bbox.x,
+              y: bbox.y,
+              width: bbox.width,
+              height: bbox.height,
+              datum: d,
+            });
           });
+
+        for (const bbox of bboxes) {
+          const paddingY = bbox.height * 0.25;
+          const paddingX = bbox.width * 0;
+          const y = bbox.y + paddingY;
+          const width = bbox.width - paddingX * 2;
+          const height = bbox.height - paddingY * 2;
+          const size = Math.min(width, height);
+          const n = Math.floor(width / size);
+          const scaleX = d3
+            .scaleBand()
+            .domain(d3.range(n))
+            .range([-width / 2, width / 2])
+            .padding(0.1);
+          for (let i = 0; i < n; i++) {
+            symbolsBBoxes.push({x: scaleX(i), y, size: scaleX.bandwidth(), datum: bbox.datum});
+          }
+        }
+
+        for (const symbolsBBox of symbolsBBoxes) {
+          let {size} = symbolsBBox;
+          const symbols = [];
+          const symbol = randomSymbol();
+          let z = 0;
+          while (size >= 10) {
+            symbols.push({...symbolsBBox, z: z++, size, symbol});
+            size -= 10;
+          }
+          const color = d3.scaleSequential(d3.interpolateViridis).domain(d3.extent(symbols, (d) => d.size).reverse());
+          for (const s of symbols) s.fill = color(s.size);
+          allSymbols.push(symbols);
+        }
+
+        symbolsGroups = g
+          .append("g")
+          .attr("class", "symbols")
+          .selectAll("g")
+          .data(allSymbols.flat().sort((a, b) => a.z - b.z))
+          .enter()
+          .append("g")
+          .attr("transform", (d) => `translate(${d.datum.x}, ${d.datum.y}) rotate(${d.datum.rotate})`);
+
+        paths = symbolsGroups
+          .append("path")
+          .attr("d", (d) => d.symbol(d.x, d.y, d.size, d.size))
+          .attr("fill", (d) => d.fill)
+          .attr("opacity", 0.8)
+          .attr("stroke", "#000")
+          .attr("stroke-width", 0.1);
       }, 0);
     }
 
@@ -217,54 +266,78 @@ export function wordle(
       frame++;
       const interpolate = randomInterpolate();
 
-      for (const words of layeredWords) {
-        const dx = noiseX(words[0].x / 10 + frame);
-        const dy = noiseY(words[0].y / 10 + frame);
-        const scale = d3
-          .scaleSequential(interpolate) // Pick a random interpolate from the list
-          .domain(d3.extent(words, (d) => d.size).reverse());
-        const symbol = randomSymbol();
-        for (let i = 0; i < words.length; i++) {
-          words[i].dx = dx * i;
-          words[i].dy = dy * i;
-          words[i].index = i;
-          words[i].fill = scale(words[i].size);
-          words[i].symbol = symbol;
-        }
-      }
-
-      groups
-        .transition()
-        .duration(1000)
-        .delay((d) => d.index * 20)
-        .ease(d3.easeElastic)
-        .attr("transform", (d) => `translate(${d.x + d.dx}, ${d.y + d.dy})rotate(${d.rotate})`);
-
       if (!symbols) {
+        for (const words of layeredWords) {
+          const dx = noiseX(words[0].x / 10 + frame);
+          const dy = noiseY(words[0].y / 10 + frame);
+          const scale = d3
+            .scaleSequential(interpolate) // Pick a random interpolate from the list
+            .domain(d3.extent(words, (d) => d.size).reverse());
+          for (let i = 0; i < words.length; i++) {
+            words[i].dx = dx * i;
+            words[i].dy = dy * i;
+            words[i].index = i;
+            words[i].fill = scale(words[i].size);
+          }
+        }
+
+        textsGroups
+          .transition()
+          .duration(1000)
+          .delay((d) => d.index * 20)
+          .ease(d3.easeElastic)
+          .attr("transform", (d) => {
+            return `translate(${d.x + d.dx}, ${d.y + d.dy})rotate(${d.rotate})`;
+          });
+
         texts
           .transition()
           .duration(1000)
           .delay((d) => d.index * 20)
           .attr("fill", (d) => d.fill);
       } else {
-        texts.filter((d) => d.top).attr("fill", "black");
-      }
+        for (const symbols of allSymbols.filter((d) => d.length > 0)) {
+          const dx = noiseX(symbols[0].x / 10 + frame);
+          const dy = noiseY(symbols[0].y / 10 + frame);
+          const scale = d3
+            .scaleSequential(interpolate) // Pick a random interpolate from the list
+            .domain(d3.extent(symbols, (d) => d.size).reverse());
+          const symbol = randomSymbol();
+          for (let i = 0; i < symbols.length; i++) {
+            symbols[i].dx = dx * i;
+            symbols[i].dy = dy * i;
+            symbols[i].index = i;
+            symbols[i].fill = scale(symbols[i].size);
+            symbols[i].symbol = symbol;
+          }
+        }
 
-      d3.selectAll(paths)
-        .transition()
-        .duration(1000)
-        .delay(function (d) {
-          return this.__text__.index * 20;
-        })
-        .attr("fill", function (d) {
-          return this.__text__.fill;
-        })
-        .attrTween("d", function (d) {
-          const from = this.getAttribute("d");
-          const {x, y, width, height} = this.__bbox__;
-          const to = this.__text__.symbol(x, y, width, height);
-          return interpolatePath(from, to);
-        });
+        symbolsGroups
+          .transition()
+          .duration(1000)
+          .delay((d) => d.index * 20)
+          .ease(d3.easeElastic)
+          .attr("transform", (d) => {
+            return `translate(${d.datum.x + d.dx}, ${d.datum.y + d.dy})rotate(${d.datum.rotate})`;
+          });
+
+        if (Math.random() > 0.7) {
+          paths
+            .transition()
+            .duration(1000)
+            .delay((d) => d.index * 20)
+            .attr("fill", (d) => d.fill)
+            .attrTween("d", (d) => {
+              return interpolatePath(d.datum.symbol(d.x, d.y, d.size, d.size), d.symbol(d.x, d.y, d.size, d.size));
+            });
+        } else {
+          paths
+            .transition()
+            .duration(1000)
+            .delay((d) => d.index * 20)
+            .attr("fill", (d) => d.fill);
+        }
+      }
     }, 2000);
   }
 
