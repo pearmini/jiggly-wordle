@@ -92,6 +92,7 @@ export function wordle(
     count = 250,
     right = false,
     symbols = false,
+    scheme = true,
     font = "Monitor-Black",
   } = {},
 ) {
@@ -129,7 +130,6 @@ export function wordle(
     .rotate(angle)
     .font(font)
     .fontSize((d) => d.size)
-    // .fontWeight("bold")
     .on("end", draw);
 
   layout.start();
@@ -148,7 +148,7 @@ export function wordle(
       }
 
       const color = d3
-        .scaleSequential(d3.interpolateViridis) // Default to viridis
+        .scaleSequential(scheme ? d3.interpolateViridis : randomInterpolate())
         .domain(d3.extent(words, (d) => d.size).reverse());
 
       // Pick one symbol for this entire group
@@ -222,21 +222,29 @@ export function wordle(
             .domain(d3.range(n))
             .range([-width / 2, width / 2])
             .padding(0.1);
+          const color = d3.scaleSequential(scheme ? d3.interpolateViridis : randomInterpolate());
           for (let i = 0; i < n; i++) {
-            symbolsBBoxes.push({x: scaleX(i), y, size: scaleX.bandwidth(), datum: bbox.datum});
+            symbolsBBoxes.push({
+              x: scaleX(i),
+              y,
+              size: scaleX.bandwidth(),
+              datum: bbox.datum,
+              color,
+              bbox,
+            });
           }
         }
 
         for (const symbolsBBox of symbolsBBoxes) {
-          let {size} = symbolsBBox;
+          let {size, color} = symbolsBBox;
           const symbols = [];
           const symbol = randomSymbol();
           let z = 0;
           while (size >= 10) {
             symbols.push({...symbolsBBox, z: z++, size, symbol});
-            size -= 10;
+            size -= 8;
           }
-          const color = d3.scaleSequential(d3.interpolateViridis).domain(d3.extent(symbols, (d) => d.size).reverse());
+          color.domain(d3.extent(symbols, (d) => d.size).reverse());
           for (const s of symbols) s.fill = color(s.size);
           allSymbols.push(symbols);
         }
@@ -271,7 +279,7 @@ export function wordle(
           const dx = noiseX(words[0].x / 10 + frame);
           const dy = noiseY(words[0].y / 10 + frame);
           const scale = d3
-            .scaleSequential(interpolate) // Pick a random interpolate from the list
+            .scaleSequential(scheme ? interpolate : randomInterpolate())
             .domain(d3.extent(words, (d) => d.size).reverse());
           for (let i = 0; i < words.length; i++) {
             words[i].dx = dx * i;
@@ -296,18 +304,20 @@ export function wordle(
           .delay((d) => d.index * 20)
           .attr("fill", (d) => d.fill);
       } else {
+        const colorByBBoxes = new Map();
         for (const symbols of allSymbols.filter((d) => d.length > 0)) {
-          const dx = noiseX(symbols[0].x / 10 + frame);
-          const dy = noiseY(symbols[0].y / 10 + frame);
-          const scale = d3
-            .scaleSequential(interpolate) // Pick a random interpolate from the list
-            .domain(d3.extent(symbols, (d) => d.size).reverse());
+          const s = symbols[0];
+          const dx = noiseX(s.x / 10 + frame);
+          const dy = noiseY(s.y / 10 + frame);
+          const color = colorByBBoxes.get(s.bbox) || d3.scaleSequential(scheme ? interpolate : randomInterpolate());
+          colorByBBoxes.set(s.bbox, color);
+          color.domain(d3.extent(symbols, (d) => d.size).reverse());
           const symbol = randomSymbol();
           for (let i = 0; i < symbols.length; i++) {
             symbols[i].dx = dx * i;
             symbols[i].dy = dy * i;
             symbols[i].index = i;
-            symbols[i].fill = scale(symbols[i].size);
+            symbols[i].fill = color(symbols[i].size);
             symbols[i].symbol = symbol;
           }
         }
