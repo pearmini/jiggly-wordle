@@ -26,7 +26,8 @@
     import {wordle} from "./wordle.js";
     await document.fonts.ready;
     await document.fonts.load("1em Monitor-Black");
-    const svg = wordle(text, {count: count, right, symbols, font: "Monitor-Black"});
+    const font = fontFamily === "Monitor (ZetaFonts)" ? "Monitor-Black" : fontFamily;
+    const svg = wordle(text, {count: count, right, symbols, font});
     invalidation.then(() => svg.dispose());
     display(svg);
   </script>
@@ -34,6 +35,9 @@
     const text = view(Inputs.textarea({rows: 10, placeholder: "Enter your text here...", value: defaultText}));
   </script>
   <script type="module">
+    const fontFamily = view(
+      Inputs.text({label: "Font Family", placeholder: "Enter your font family", value: "Monitor (ZetaFonts)"}),
+    );
     const right = view(Inputs.toggle({label: "Use Right Angles", value: false}));
     const symbols = view(Inputs.toggle({label: "Display Symbols", value: false}));
     const count = view(Inputs.number({label: "Number of Words", value: 100}));
