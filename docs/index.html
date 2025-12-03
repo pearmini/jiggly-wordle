@@ -27,7 +27,7 @@
     await document.fonts.ready;
     await document.fonts.load("1em Monitor-Black");
     const font = fontFamily === "Monitor (ZetaFonts)" ? "Monitor-Black" : fontFamily;
-    const svg = wordle(text, {count: count, right, symbols, font});
+    const svg = wordle(text, {count: count, right, symbols, font, scheme});
     invalidation.then(() => svg.dispose());
     display(svg);
   </script>
@@ -38,8 +38,9 @@
     const fontFamily = view(
       Inputs.text({label: "Font Family", placeholder: "Enter your font family", value: "Monitor (ZetaFonts)"}),
     );
-    const right = view(Inputs.toggle({label: "Use Right Angles", value: false}));
+    const scheme = view(Inputs.toggle({label: "Single Scheme", value: true}));
     const symbols = view(Inputs.toggle({label: "Display Symbols", value: false}));
+    const right = view(Inputs.toggle({label: "Use Right Angles", value: false}));
     const count = view(Inputs.number({label: "Number of Words", value: 100}));
   </script>
   <script type="text/markdown">
