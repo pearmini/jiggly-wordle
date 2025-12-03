@@ -193,7 +193,7 @@ export function wordle(
 
         texts
           .filter((d) => d.top)
-          .attr("fill", "#ddd")
+          .attr("fill", "#eee")
           .attr("stroke", "none");
 
         texts
