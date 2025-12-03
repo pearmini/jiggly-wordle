@@ -3,10 +3,16 @@
   <title>Jiggly Wordle</title>
   <script type="text/markdown">
     <style>
+      @font-face {
+        font-family: 'Monitor-Black';
+        src: url('./fonts/Monitor-Black.ttf') format('truetype');
+        font-weight: normal;
+        font-style: normal;
+      }
       .inputs-3a86ea-textarea {
         width: 960px !important;
       }
-
+    
       form {
         font-size: 14px !important;
       }
@@ -18,7 +24,10 @@
   </script>
   <script type="module">
     import {wordle} from "./wordle.js";
-    const svg = wordle(text, {count: count, right, symbols});
+    await document.fonts.ready;
+    await document.fonts.load("1em Monitor-Black");
+    const font = fontFamily === "Monitor (ZetaFonts)" ? "Monitor-Black" : fontFamily;
+    const svg = wordle(text, {count: count, right, symbols, font});
     invalidation.then(() => svg.dispose());
     display(svg);
   </script>
@@ -26,6 +35,9 @@
     const text = view(Inputs.textarea({rows: 10, placeholder: "Enter your text here...", value: defaultText}));
   </script>
   <script type="module">
+    const fontFamily = view(
+      Inputs.text({label: "Font Family", placeholder: "Enter your font family", value: "Monitor (ZetaFonts)"}),
+    );
     const right = view(Inputs.toggle({label: "Use Right Angles", value: false}));
     const symbols = view(Inputs.toggle({label: "Display Symbols", value: false}));
     const count = view(Inputs.number({label: "Number of Words", value: 100}));

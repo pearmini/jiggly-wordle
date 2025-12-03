@@ -92,6 +92,7 @@ export function wordle(
     count = 250,
     right = false,
     symbols = false,
+    font = "Monitor-Black",
   } = {},
 ) {
   const wordFreqs = computeWordFrequencies(text, stopwords).slice(0, count);
@@ -126,9 +127,9 @@ export function wordle(
     .words(words)
     .padding(1)
     .rotate(angle)
-    .font("Impact")
+    .font(font)
     .fontSize((d) => d.size)
-    .fontWeight("bold")
+    // .fontWeight("bold")
     .on("end", draw);
 
   layout.start();
@@ -172,10 +173,9 @@ export function wordle(
     const texts = textsGroups
       .append("text")
       .attr("font-size", (d) => `${d.size}px`)
-      .attr("font-family", "Impact")
+      .attr("font-family", font)
       .attr("fill", (d) => d.fill)
       .attr("text-anchor", "middle")
-      .attr("font-weight", "bold")
       .attr("stroke", "#000")
       .attr("stroke-width", 0.1)
       .text((d) => d.text);
